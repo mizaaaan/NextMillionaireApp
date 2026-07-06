@@ -1,0 +1,79 @@
+# Codemagic CI/CD config for the Next Millionaire WebView app.
+# Docs: https://docs.codemagic.io/yaml/yaml-getting-started/
+#
+# This project is a "managed" Expo app — there's no committed ios/ or
+# android/ folder. Both workflows below run `npx expo prebuild` on the
+# build machine to generate the native project fresh every time, then
+# build from that.
+#
+# Two workflows:
+#   android-apk        -> debug-signed .apk, installs directly on any
+#                         Android device/emulator, no signing setup needed.
+#   ios-unsigned-ipa    -> unsigned .ipa. This proves the iOS build compiles,
+#                         but iOS will refuse to run it on a real iPhone
+#                         until it's re-signed with a real Apple Developer
+#                         certificate + provisioning profile. Useful for
+#                         confirming the build works before you've set up
+#                         an Apple Developer account, or for handing off to
+#                         someone else to sign.
+
+workflows:
+  android-apk:
+    name: Android APK (debug, installable)
+    max_build_duration: 60
+    environment:
+      node: 22.13.1
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Generate native Android project
+        script: npx expo prebuild --platform android
+      - name: Set Android SDK location
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Build debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug --no-daemon
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+
+  ios-unsigned-ipa:
+    name: iOS unsigned IPA
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    environment:
+      node: 22.13.1
+      xcode: latest
+      cocoapods: default
+      vars:
+        XCODE_WORKSPACE: "NextMillionaire.xcworkspace"
+        XCODE_SCHEME: "NextMillionaire"
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Generate native iOS project
+        script: npx expo prebuild --platform ios
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Build unsigned .app
+        script: |
+          xcodebuild build \
+            -workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath "$CM_BUILD_DIR/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+      - name: Package unsigned .ipa
+        script: |
+          cd "$CM_BUILD_DIR"
+          mkdir -p build/Payload
+          cp -r build/Build/Products/Release-iphoneos/*.app build/Payload/
+          cd build
+          zip -r "$CM_BUILD_DIR/NextMillionaire-unsigned.ipa" Payload
+    artifacts:
+      - NextMillionaire-unsigned.ipa
+      - build/Build/Products/Release-iphoneos/*.app
