@@ -103,6 +103,8 @@ export default function App() {
             sharedCookiesEnabled
             domStorageEnabled
             javaScriptEnabled
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
           />
         )}
 
