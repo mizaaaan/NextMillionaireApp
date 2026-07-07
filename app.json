@@ -7,6 +7,27 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "backgroundColor": "#54C2FE",
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#33B6FE",
+          "image": "./assets/splash-fullscreen.png",
+          "resizeMode": "cover",
+          "ios": {
+            "image": "./assets/splash-fullscreen.png",
+            "resizeMode": "cover",
+            "backgroundColor": "#33B6FE",
+            "enableFullScreenImage_legacy": true
+          },
+          "android": {
+            "image": "./assets/splash-icon.png",
+            "imageWidth": 220,
+            "backgroundColor": "#33B6FE"
+          }
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nextmillionaireqr.app"

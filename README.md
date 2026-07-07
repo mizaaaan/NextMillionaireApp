@@ -13,8 +13,21 @@ links, `mailto:`, `tel:`) to the phone's browser/mail/dialer.
 - `assets/` — app icon and Android adaptive icon, generated from your
   site's existing favicon (`android-chrome-512x512.png`). These are
   upscaled from a 512×512 source — swap in real 1024×1024 artwork before
-  a public store launch if you want maximum sharpness.
+  a public store launch if you want maximum sharpness. Also includes the
+  branded splash screen assets (`splash-fullscreen.png`, `splash-icon.png`).
 - `eas.json` — build profiles for EAS Build (development / preview / production).
+
+## About the splash screen
+
+iOS shows your full branded splash image (`assets/splash-fullscreen.png`)
+edge-to-edge, exactly as designed. Android's newer splash screen API
+doesn't support full-screen images anymore — Google restricts it to a
+centered logo on a solid color — so Android shows the same logo
+(`assets/splash-icon.png`) centered on the same blue background. That
+difference is an OS-level rule for all apps, not something specific to
+this project. Test it with a real build (EAS/Codemagic build, not Expo
+Go) — Expo Go and dev clients show a generic splash instead of your
+configured one.
 
 If your domain ever changes, update `SITE_URL` (and `SITE_HOSTS`) near the
 top of `App.js`.
