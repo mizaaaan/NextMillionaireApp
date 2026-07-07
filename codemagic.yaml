@@ -9,13 +9,18 @@
 # Two workflows:
 #   android-apk        -> debug-signed .apk, installs directly on any
 #                         Android device/emulator, no signing setup needed.
-#   ios-unsigned-ipa    -> unsigned .ipa. This proves the iOS build compiles,
-#                         but iOS will refuse to run it on a real iPhone
-#                         until it's re-signed with a real Apple Developer
-#                         certificate + provisioning profile. Useful for
-#                         confirming the build works before you've set up
-#                         an Apple Developer account, or for handing off to
-#                         someone else to sign.
+#   ios-unsigned-ipa    -> unsigned .ipa. Disables code signing at both the
+#                         xcodebuild level AND inside every CocoaPods target
+#                         (via scripts/patch-ios-podfile.rb) — Xcode 14+
+#                         otherwise fails pod targets/resource bundles with
+#                         "requires a development team" even when the top
+#                         -level build has signing turned off. The result
+#                         proves the iOS build compiles; it still needs to
+#                         be re-signed with a real certificate (yours,
+#                         Apple's, or a third-party e-signing tool) before
+#                         it will install and run on a physical iPhone —
+#                         that's an iOS OS-level rule, not something CI
+#                         config can bypass.
 
 workflows:
   android-apk:
@@ -39,7 +44,7 @@ workflows:
 
   ios-unsigned-ipa:
     name: iOS unsigned IPA
-    max_build_duration: 90
+    max_build_duration: 120
     instance_type: mac_mini_m2
     environment:
       node: 22.13.1
@@ -53,6 +58,8 @@ workflows:
         script: npm ci
       - name: Generate native iOS project
         script: npx expo prebuild --platform ios
+      - name: Disable code signing for CocoaPods targets
+        script: ruby scripts/patch-ios-podfile.rb
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
@@ -74,6 +81,11 @@ workflows:
           cp -r build/Build/Products/Release-iphoneos/*.app build/Payload/
           cd build
           zip -r "$CM_BUILD_DIR/NextMillionaire-unsigned.ipa" Payload
+      - name: Verify the .ipa was created
+        script: |
+          cd "$CM_BUILD_DIR"
+          ls -la NextMillionaire-unsigned.ipa
+          unzip -l NextMillionaire-unsigned.ipa | head -20
     artifacts:
       - NextMillionaire-unsigned.ipa
       - build/Build/Products/Release-iphoneos/*.app

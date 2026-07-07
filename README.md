@@ -91,6 +91,17 @@ Both workflows run `npx expo prebuild` on the build machine itself, so
 there's no `ios/`/`android/` folder to keep in sync in your repo — it's
 regenerated fresh every build from `app.json` + `App.js`.
 
+**Why there's a `scripts/patch-ios-podfile.rb`:** disabling code signing at
+the `xcodebuild` command line isn't enough on its own — Xcode 14+ still
+tries to sign individual CocoaPods targets (especially resource bundles)
+when building for a physical device, which fails with "requires a
+development team" even though the top-level build has signing off. This
+script patches the freshly-generated `ios/Podfile` right after `expo
+prebuild` to turn signing off for every Pods target too. It's idempotent
+(safe if it runs twice) and will print a clear error instead of silently
+doing nothing if a future Expo SDK changes the Podfile template enough
+that its anchor text no longer matches.
+
 ## One thing to know before submitting to the App Store
 
 Apple's guideline **4.2 (Minimum Functionality)** lets reviewers reject
